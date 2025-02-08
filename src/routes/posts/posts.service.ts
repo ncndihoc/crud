@@ -1,12 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
+import envConfig from '../../shared/services/config';
 @Injectable()
 export class PostsService {
   constructor(private readonly prisma: PrismaService) {}
 
   getAllPosts() {
+    console.log(envConfig.ACCESS_TOKEN_EXPIRATION);
     return this.prisma.post.findMany();
   }
 

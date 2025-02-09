@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { HashingService } from '../../shared/services/hashing.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-
+import { RegisterDto } from './auth.dto';
 @Injectable()
 export class AuthService {
   constructor(
@@ -10,7 +10,7 @@ export class AuthService {
     private readonly hashingService: HashingService,
   ) {}
 
-  async register(body: any) {
+  async register(body: RegisterDto) {
     try {
       const hashedPassword = await this.hashingService.hash(body.password);
       const user = await this.prisma.user.create({

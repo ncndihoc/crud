@@ -1,0 +1,27 @@
+### NestJS CLI Commands
+
+# Project Initialization
+npx @nestjs/cli new my-app
+nest new my-app
+
+# Generating Components
+nest g mo users       # Generate module
+nest g co users       # Generate controller
+nest g s users        # Generate service
+nest g provider users # Generate provider
+nest g resource users # Generate full CRUD resource
+
+# Running and Building
+npm run start:dev     # Start development server (watch mode)
+npm run start:prod    # Start production server
+npm run build         # Build project
+
+# Testing
+npm run test          # Run unit tests
+npm run test:e2e      # Run e2e tests
+npm run test:cov      # Run tests with coverage report
+
+# Other Useful Commands
+nest --version        # Check NestJS CLI version
+nest --help           # List available NestJS CLI commands
+nest add @nestjs/swagger # Add Swagger package

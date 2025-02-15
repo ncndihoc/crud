@@ -39,7 +39,7 @@ if (e.length > 0) {
       value: err.value,
     };
   });
-  throw new Error(`Invalid environment variables: ${error.join(', ')}`);
+  throw new Error(`Invalid environment variables: ${JSON.stringify(error)}`);
 }
 
 const envConfig = configServer;

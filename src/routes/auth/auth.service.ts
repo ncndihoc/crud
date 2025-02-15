@@ -1,13 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { HashingService } from '../../shared/services/hashing.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { RegisterDto } from './auth.dto';
+import { LoginDto, RegisterDto } from './auth.dto';
+import { TokenService } from '../../shared/services/token.service';
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly hashingService: HashingService,
+    private readonly tokenService: TokenService,
+    private readonly prismaService: PrismaService,
   ) {}
 
   async register(body: RegisterDto) {
@@ -29,5 +32,50 @@ export class AuthService {
       }
       throw new Error('Failed to register user');
     }
+  }
+
+  async login(body: LoginDto) {
+    // check if user exists
+    const user = await this.prisma.user.findUnique({
+      where: { email: body.email },
+    });
+    if (!user) {
+      throw new UnprocessableEntityException({
+        field: 'email',
+        message: 'User not found',
+      });
+    }
+    // check if password is correct
+    const isPasswordValid = await this.hashingService.compare(
+      body.password,
+      user.password,
+    );
+    if (!isPasswordValid) {
+      throw new UnprocessableEntityException({
+        field: 'password',
+        message: 'Incorrect password',
+      });
+    }
+    // generate tokens
+    const tokens = await this.generateTokens(user.id);
+    return tokens;
+  }
+
+  async generateTokens(userId: number) {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.tokenService.signAccessToken({ userId }),
+      this.tokenService.signRefreshToken({ userId }),
+    ]);
+    // decode refresh token to save in db
+    const decodedRefreshToken =
+      await this.tokenService.verifyRefreshToken(refreshToken);
+    await this.prismaService.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: decodedRefreshToken.userId,
+        expiresAt: new Date(decodedRefreshToken.exp * 1000),
+      },
+    });
+    return { accessToken, refreshToken };
   }
 }

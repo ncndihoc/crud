@@ -9,6 +9,15 @@ export class LoginDto {
   password: string;
 }
 
+export class LoginResponseDto {
+  accessToken: string;
+  refreshToken: string;
+
+  constructor(partial: Partial<LoginResponseDto>) {
+    Object.assign(this, partial);
+  }
+}
+
 export class RegisterDto extends LoginDto {
   @IsString()
   name: string;

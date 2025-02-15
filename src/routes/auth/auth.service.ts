@@ -1,4 +1,8 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { HashingService } from '../../shared/services/hashing.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -77,5 +81,35 @@ export class AuthService {
       },
     });
     return { accessToken, refreshToken };
+  }
+
+  async refreshToken(refreshToken: string) {
+    try {
+      // verify refresh token
+      const { userId } =
+        await this.tokenService.verifyRefreshToken(refreshToken);
+      // check if refresh token is valid
+      await this.prisma.refreshToken.findUniqueOrThrow({
+        where: {
+          token: refreshToken,
+        },
+      });
+      // delete refresh token from db
+      await this.prisma.refreshToken.delete({
+        where: {
+          token: refreshToken,
+        },
+      });
+      // generate new tokens
+      return await this.generateTokens(userId);
+    } catch (error) {
+      if (
+        error instanceof PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new UnauthorizedException('Refresh token is revoked');
+      }
+      throw new Error('Failed to refresh token');
+    }
   }
 }

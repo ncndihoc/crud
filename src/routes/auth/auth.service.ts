@@ -1,13 +1,17 @@
 import {
+  ConflictException,
   Injectable,
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { HashingService } from '../../shared/services/hashing.service';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { LoginDto, RegisterDto } from './auth.dto';
 import { TokenService } from '../../shared/services/token.service';
+import {
+  isNotFoundPrismaError,
+  isUniqueConstraintPrismaError,
+} from '../../shared/helpers';
 @Injectable()
 export class AuthService {
   constructor(
@@ -29,10 +33,8 @@ export class AuthService {
       });
       return user;
     } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new Error('User already exists');
-        }
+      if (isUniqueConstraintPrismaError(error)) {
+        throw new ConflictException('User already exists');
       }
       throw new Error('Failed to register user');
     }
@@ -103,10 +105,7 @@ export class AuthService {
       // generate new tokens
       return await this.generateTokens(userId);
     } catch (error) {
-      if (
-        error instanceof PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
+      if (isNotFoundPrismaError(error)) {
         throw new UnauthorizedException('Refresh token is revoked');
       }
       throw new Error('Failed to refresh token');

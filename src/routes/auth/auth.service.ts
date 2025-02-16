@@ -90,25 +90,30 @@ export class AuthService {
       // verify refresh token
       const { userId } =
         await this.tokenService.verifyRefreshToken(refreshToken);
+
       // check if refresh token is valid
       await this.prisma.refreshToken.findUniqueOrThrow({
-        where: {
-          token: refreshToken,
-        },
+        where: { token: refreshToken },
       });
+
       // delete refresh token from db
       await this.prisma.refreshToken.delete({
-        where: {
-          token: refreshToken,
-        },
+        where: { token: refreshToken },
       });
+
       // generate new tokens
       return await this.generateTokens(userId);
     } catch (error) {
       if (isNotFoundPrismaError(error)) {
         throw new UnauthorizedException('Refresh token is revoked');
       }
-      throw new Error('Failed to refresh token');
+      if (
+        error.name === 'JsonWebTokenError' ||
+        error.name === 'TokenExpiredError'
+      ) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+      throw new UnauthorizedException('Failed to refresh token');
     }
   }
 }
